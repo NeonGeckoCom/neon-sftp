@@ -25,6 +25,7 @@
 # LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE,  EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+import os
 
 from paramiko import SFTPClient, Transport
 
@@ -44,7 +45,7 @@ class NeonSFTPConnector:
     def transport(self):
         if not self._transport:
             self._transport = Transport((self.host, self.port))
-            self._transport.connect()
+            self._transport.connect(username=self.username, password=self.passphrase)
         return self._transport
 
     @property
@@ -53,6 +54,7 @@ class NeonSFTPConnector:
         if not self._connection:
             self._connection = SFTPClient.from_transport(self.transport)
             if self.root_path:
+                self.change_dir(path='/')
                 self.change_dir(path=self.root_path)
         return self._connection
 
@@ -65,8 +67,8 @@ class NeonSFTPConnector:
 
     def get_file(self, get_from: str, save_to: str, prefetch: bool = True):
         """Gets file from remote host and stores it locally"""
-        self.connection.get(remotepath=get_from, localpath=save_to, prefetch=prefetch)
+        self.connection.get(remotepath=self.root_path + '/' + get_from, localpath=save_to, prefetch=prefetch)
 
     def put_file(self, get_from: str, save_to: str):
         """Gets file from local host and stores it remotely"""
-        self.connection.put(remotepath=save_to, localpath=get_from)
+        self.connection.put(remotepath=self.root_path + '/' + save_to, localpath=get_from)
