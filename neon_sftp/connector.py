@@ -55,7 +55,7 @@ class NeonSFTPConnector:
             self._connection = SFTPClient.from_transport(self.transport)
             if self.root_path:
                 self.change_dir(path='/')
-                self.change_dir(path=self.root_path)
+                self.change_dir(path=os.path.expanduser(self.root_path))
         return self._connection
 
     def change_dir(self, path: str):
