@@ -61,7 +61,7 @@ class NeonSFTPConnector:
     def change_dir(self, path: str):
         """
             Checkout desired path
-            :param path: path string to checkout
+            :param path: path string to checkout (relative or absolute)
         """
         self.connection.chdir(path=path)
 
