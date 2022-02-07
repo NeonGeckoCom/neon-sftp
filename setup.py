@@ -26,12 +26,12 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE,  EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
-from setuptools import setup, find_packages
+from setuptools import setup
 from os import getenv, path
 
 
 def get_requirements(requirements_filename: str):
-    requirements_file = path.join(path.abspath(path.dirname(__file__)), requirements_filename)
+    requirements_file = path.join(path.abspath(path.dirname(__file__)), "requirements", requirements_filename)
     with open(requirements_file, 'r', encoding='utf-8') as r:
         requirements = r.readlines()
     requirements = [r.strip() for r in requirements if r.strip() and not r.strip().startswith("#")]
@@ -60,7 +60,7 @@ with open("./version.py", "r", encoding="utf-8") as v:
                 version = line.split("'")[1]
 
 setup(
-    name='neon_sftp',
+    name='neon-sftp',
     version=version,
     description='SFTP Adapter for Neon Modules',
     long_description=long_description,
@@ -68,12 +68,13 @@ setup(
     url='https://github.com/NeonGeckoCom/neon-sftp',
     author='NeonGecko',
     author_email='developers@neon.ai',
-    license='BSD-3-Clause',
-    packages=find_packages(),
+    license='NeonAI License v1.0',
+    packages=['neon_sftp'],
     install_requires=get_requirements("requirements.txt"),
     zip_safe=True,
     classifiers=[
         'Intended Audience :: Developers',
         'Programming Language :: Python :: 3.6',
-    ]
+    ],
+    keywords='neon sftp'
 )
