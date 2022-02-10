@@ -70,7 +70,7 @@ setup(
     author_email='developers@neon.ai',
     license='NeonAI License v1.0',
     packages=['neon_sftp'],
-    install_requires=get_requirements("requirements.txt"),
+    install_requires=get_requirements("requirements/requirements.txt"),
     zip_safe=True,
     classifiers=[
         'Intended Audience :: Developers',
