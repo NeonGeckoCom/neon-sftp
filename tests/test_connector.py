@@ -37,7 +37,7 @@ class TestSFTPConnector(unittest.TestCase):
 
     @classmethod
     def setUpClass(cls) -> None:
-        with open(os.environ.get('SFTP_CREDS_PATH', 'test_config.json')) as f:
+        with open(os.environ.get('SFTP_CREDS_PATH', '~/.local/share/neon/credentials.json')) as f:
             sftp_creds = json.load(f)
             cls.connector = NeonSFTPConnector(**sftp_creds)
 
