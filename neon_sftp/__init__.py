@@ -1,1 +1,1 @@
-from neon_sftp.connector import NeonSFTPConnector
+from .connector import NeonSFTPConnector
