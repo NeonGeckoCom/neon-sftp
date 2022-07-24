@@ -1,0 +1,39 @@
+name: Run Unit Tests
+on:
+  push:
+  workflow_dispatch:
+
+jobs:
+  unit_tests:
+    strategy:
+      matrix:
+        python-version: [ 3.6, 3.7, 3.8, 3.9 ]
+      max-parallel: 1
+    timeout-minutes: 30
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v2
+      - name: Set up python ${{ matrix.python-version }}
+        uses: actions/setup-python@v2
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Get Credential
+        run: |
+          mkdir -p ~/.local/share/neon
+          echo $SFTP_CONFIG > ~/.local/share/neon/credentials.json
+        shell: bash
+        env:
+          SFTP_CONFIG: ${{secrets.SFTP_CONFIG}}
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements/requirements.txt
+          pip install -r requirements/test_requirements.txt
+      - name: Run Connector Tests
+        run: |
+          pytest tests/test_connector.py --doctest-modules --junitxml=tests/connector-test-results.xml
+      - name: Upload Connector test results
+        uses: actions/upload-artifact@v2
+        with:
+          name: utils-test-results
+          path: tests/connector-test-results.xml
