@@ -25,6 +25,7 @@
 # LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE,  EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
+import io
 import os
 
 from paramiko import SFTPClient, Transport
@@ -68,6 +69,26 @@ class NeonSFTPConnector:
     def get_file(self, get_from: str, save_to: str, prefetch: bool = True):
         """Gets file from remote host and stores it locally"""
         self.connection.get(remotepath=self.root_path + '/' + get_from, localpath=save_to, prefetch=prefetch)
+
+    def get_file_object(self, get_from: str,
+                        file_object: str = io.BytesIO(),
+                        callback_function: callable = None,
+                        prefetch: bool = True) -> io.BytesIO:
+        """
+            Gets file from remote host and stores it into file object
+
+            :param get_from: source location
+            :param file_object: desired streaming object to fulfill (creates new one if not provided)
+            :param callback_function: function of type foo(int, int) that handles sequential data population
+            :param prefetch: whether prefetching should be performed
+
+            :returns fulfilled buffer
+        """
+        self.connection.getfo(remotepath=self.root_path + '/' + get_from,
+                              fl=file_object,
+                              callback=callback_function,
+                              prefetch=prefetch)
+        return file_object
 
     def put_file(self, get_from: str, save_to: str):
         """Gets file from local host and stores it remotely"""
