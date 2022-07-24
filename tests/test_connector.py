@@ -25,7 +25,6 @@
 # LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE,  EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-
 import json
 import os
 import sys
@@ -54,6 +53,11 @@ class TestSFTPConnector(unittest.TestCase):
         self.assertTrue(os.path.exists(save_to))
         os.remove(save_to)
         self.assertTrue(not os.path.exists(save_to))
+
+    def test_get_file_object_default(self):
+        fo = self.connector.get_file_object(get_from='/de/output_graph.tflite')
+        fo.seek(0)
+        self.assertIsNotNone(fo.getvalue())
 
 
 if __name__ == '__main__':
