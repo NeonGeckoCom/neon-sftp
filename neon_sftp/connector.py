@@ -32,7 +32,7 @@ from typing import Union
 
 from paramiko import SFTPClient, Transport
 
-from .utils.format_utils import str_to_bytes_io
+from neon_sftp.utils import str_to_bytes_io
 
 logger = logging.getLogger(__name__)
 

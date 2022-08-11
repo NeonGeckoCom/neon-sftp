@@ -34,7 +34,7 @@ import unittest
 
 sys.path.insert(0, os.path.join(os.path.dirname(__file__), ".."))
 
-from neon_sftp.utils.format_utils import str_to_bytes_io
+from neon_sftp.utils import str_to_bytes_io
 from neon_sftp.connector import NeonSFTPConnector
 
 tmp_file_object: io.BytesIO = None
