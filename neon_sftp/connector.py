@@ -26,9 +26,15 @@
 # NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 # SOFTWARE,  EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 import io
+import logging
 import os
+from typing import Union
 
 from paramiko import SFTPClient, Transport
+
+from .utils.format_utils import str_to_bytes_io
+
+logger = logging.getLogger(__name__)
 
 
 class NeonSFTPConnector:
@@ -44,7 +50,7 @@ class NeonSFTPConnector:
 
     @property
     def transport(self):
-        if not self._transport:
+        if not (self._transport and self._transport.is_active()):
             self._transport = Transport((self.host, self.port))
             self._transport.connect(username=self.username, password=self.passphrase)
         return self._transport
@@ -52,7 +58,7 @@ class NeonSFTPConnector:
     @property
     def connection(self) -> SFTPClient:
         """Establishes SFTP connection"""
-        if not self._connection:
+        if not (self._connection and not self._connection.sock.closed):
             self._connection = SFTPClient.from_transport(self.transport)
             if self.root_path:
                 self.change_dir(path='/')
@@ -66,12 +72,19 @@ class NeonSFTPConnector:
         """
         self.connection.chdir(path=path)
 
-    def get_file(self, get_from: str, save_to: str, prefetch: bool = True):
+    def get_file(self, get_from: str, save_to: str, prefetch: bool = True) -> bool:
         """Gets file from remote host and stores it locally"""
-        self.connection.get(remotepath=self.root_path + '/' + get_from, localpath=save_to, prefetch=prefetch)
+        remote_path = self.root_path + '/' + get_from
+        try:
+            self.connection.get(remotepath=remote_path, localpath=save_to, prefetch=prefetch)
+            operation_success = True
+        except FileNotFoundError:
+            logger.error(f'Failed to get file from remote path: "{remote_path}" (remote file not found)')
+            operation_success = False
+        return operation_success
 
     def get_file_object(self, get_from: str,
-                        file_object: str = io.BytesIO(),
+                        file_object: io.BytesIO = None,
                         callback_function: callable = None,
                         prefetch: bool = True) -> io.BytesIO:
         """
@@ -84,12 +97,69 @@ class NeonSFTPConnector:
 
             :returns fulfilled buffer
         """
-        self.connection.getfo(remotepath=self.root_path + '/' + get_from,
-                              fl=file_object,
-                              callback=callback_function,
-                              prefetch=prefetch)
+        if not file_object:
+            file_object = io.BytesIO()
+        remote_path = self.root_path + '/' + get_from
+        try:
+            num_bytes = self.connection.getfo(remotepath=remote_path,
+                                              fl=file_object,
+                                              callback=callback_function,
+                                              prefetch=prefetch)
+            if num_bytes == 0:
+                logger.warning(f'Empty result buffer for remote_path="{remote_path}"')
+        except FileNotFoundError:
+            logger.error(f'Failed to get file from remote path: "{remote_path}" (file not found)')
+        file_object.seek(0)
         return file_object
 
-    def put_file(self, get_from: str, save_to: str):
+    def make_dir(self, new_path: os.PathLike):
+        """ Makes dir in remote file system if not exists """
+        try:
+            self.connection.mkdir(path=new_path)
+        except FileExistsError:
+            logger.info('Remote dir already exists')
+
+    def put_file(self, get_from: os.PathLike, save_to: os.PathLike):
         """Gets file from local host and stores it remotely"""
-        self.connection.put(remotepath=self.root_path + '/' + save_to, localpath=get_from)
+        try:
+            remote_path = self.root_path + '/' + save_to
+            stats = self.connection.put(remotepath=remote_path, localpath=get_from)
+            logger.info(f'Successfully stored file object to remote_path: {remote_path}, stats - {stats}')
+            return stats
+        except FileNotFoundError:
+            logger.error(f'Failed to get file from local path: "{get_from}" (file not found)')
+
+    def put_file_object(self, file_object: Union[io.BytesIO, str], save_to: os.PathLike):
+        """
+            Stores file object from local host and stores it remotely
+
+            :param file_object: source bytes io buffer or base64 encoded string (in case string type detected - creates buffer out of it)
+            :param save_to: remote path to save buffered value to
+
+            :returns SFTPAttributes if buffer is not empty, None otherwise
+        """
+        if isinstance(file_object, str):
+            file_object = str_to_bytes_io(file_object)
+        if file_object.getbuffer().nbytes > 0:
+            remote_path = self.root_path + '/' + save_to
+            stats = self.connection.putfo(fl=file_object, remotepath=remote_path)
+            logger.info(f'Successfully stored file object to remote_path: {remote_path}, stats - {stats}')
+            return stats
+        else:
+            logger.warning('Empty buffer provided, saving operation aborted')
+
+    def remove(self, remote_path: os.PathLike) -> bool:
+        """ Removes file from remote path """
+        try:
+            remote_path = self.root_path + '/' + remote_path
+            self.connection.remove(path=remote_path)
+            operation_success = True
+        except FileNotFoundError:
+            logger.error(f'Failed to delete file "{remote_path}"')
+            operation_success = False
+        return operation_success
+
+    def shut_down(self):
+        """ Gracefully shuts down SFTP connection """
+        self.transport.close()
+        self.connection.close()
